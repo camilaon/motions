@@ -29,7 +29,8 @@
 import {readFileSync, readdirSync, statSync, lstatSync, existsSync} from 'node:fs';
 import {join, basename, dirname, resolve, relative, extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {authorProblem, singleAuthor} from './security/ownership.mjs';
+import {appCommit, authorProblem, singleAuthor} from './security/ownership.mjs';
+export {appCommit};
 import {sensitiveFile} from './security/package.mjs';
 
 /** The newest version of the format; every version before it is still read (SPEC.md §9). */
@@ -921,17 +922,6 @@ export async function checkAccounts(dir, {was, lookup} = {}) {
 export function unsigned(commits) {
   const body = (c) => String(c?.commit?.message ?? '').split('\n').slice(1).join('\n');
   return (Array.isArray(commits) ? commits : []).filter((c) => (c?.parents?.length ?? 1) <= 1 && !/^Signed-off-by: \S/m.test(body(c))).map((c) => c?.sha);
-}
-
-/**
- * Whether `commit` (as GitHub's API gives one) is one motionhub's GitHub App made: authored by the app (`app`, its
- * <slug>[bot] account), committed by the app or by GitHub for it (web-flow: a commit made through GitHub's API has
- * GitHub as its committer), and verified by GitHub. Shared with site/github-app.mjs, which judges the same commits.
- */
-export function appCommit(commit, app) {
-  const committer = commit?.committer?.login;
-  return Boolean(app) && commit?.author?.login === app && (committer === app || committer === 'web-flow')
-    && commit.commit?.verification?.verified === true && commit.commit.verification.reason === 'valid';
 }
 
 /**
