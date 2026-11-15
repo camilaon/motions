@@ -78,13 +78,15 @@ jobs:
             echo "The pull request moved on since this run began; the run for its newest push judges it."; exit 1
           fi
       # a pull request motionhub's GitHub App opened for someone (sharing from motionhub.dev, site/submissions.mjs) is
-      # theirs: the app names them in its commits. Taken only from the app's own pull request on a branch of this
-      # repository, which no one but the app and the maintainers can push to; anyone else's line is ignored
+      # theirs: the app names them in its commits. Taken only from the app's own pull request on a share/ branch of this
+      # repository, which no one but the app can write to (the "submission branches: app only" ruleset): that is what
+      # lets a commit GitHub made for the app (web-flow) count as the app's. Anyone else's line is ignored
       - name: Who submitted it, when motionhub opened it for them
         if: >-
           github.event.pull_request.user.type == 'Bot' && vars.MOTIONHUB_BOT != '' &&
           github.event.pull_request.user.login == vars.MOTIONHUB_BOT &&
-          github.event.pull_request.head.repo.full_name == github.repository
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          startsWith(github.event.pull_request.head.ref, 'share/')
         run: |
           who=$(node tools/check.mjs --submitter "$RUNNER_TEMP/commits.json")
           echo "Submitted by $who"

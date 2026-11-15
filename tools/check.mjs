@@ -927,8 +927,8 @@ export function unsigned(commits) {
 /**
  * Who submitted a pull request that motionhub's GitHub App opened for them (site/github-app.mjs): the account its
  * commits name in a `Motionhub-Submitted-By: <id> <login>` line. Every commit that carries one names the same account,
- * and at least one does; else {error}. ownership.yml asks only for the app's own pull requests from this repository,
- * whose branches no one but the app and the maintainers can push to.
+ * and at least one does; else {error}. ownership.yml asks only for the app's own pull requests from a share/ branch
+ * of this repository, which no one but the app can write to.
  */
 export function submitter(commits, app) {
   if (!Array.isArray(commits) || !commits.length || !app || commits.some((c) => !appCommit(c, app)
