@@ -924,16 +924,26 @@ export function unsigned(commits) {
 }
 
 /**
+ * Whether `commit` (as GitHub's API gives one) is one motionhub's GitHub App made: authored by the app (`app`, its
+ * <slug>[bot] account), committed by the app or by GitHub for it (web-flow: a commit made through GitHub's API has
+ * GitHub as its committer), and verified by GitHub. Shared with site/github-app.mjs, which judges the same commits.
+ */
+export function appCommit(commit, app) {
+  const committer = commit?.committer?.login;
+  return Boolean(app) && commit?.author?.login === app && (committer === app || committer === 'web-flow')
+    && commit.commit?.verification?.verified === true && commit.commit.verification.reason === 'valid';
+}
+
+/**
  * Who submitted a pull request that motionhub's GitHub App opened for them (site/github-app.mjs): the account its
  * commits name in a `Motionhub-Submitted-By: <id> <login>` line. Every commit that carries one names the same account,
  * and at least one does; else {error}. ownership.yml asks only for the app's own pull requests from this repository,
  * whose branches no one but the app and the maintainers can push to.
  */
 export function submitter(commits, app) {
-  if (!Array.isArray(commits) || !commits.length || !app || commits.some((c) =>
-    c?.committer?.login !== app || c.commit?.verification?.verified !== true || c.commit.verification.reason !== 'valid'
+  if (!Array.isArray(commits) || !commits.length || !app || commits.some((c) => !appCommit(c, app)
     || !/^Motionhub-Submitted-By: \S+ \S+\s*$/m.test(c.commit?.message ?? ''))) {
-    return {error: 'every submission commit must be verified by GitHub, committed by the expected app, and name its submitter'};
+    return {error: 'every submission commit must be verified by GitHub, made by the expected app, and name its submitter'};
   }
   const named = [];
   for (const c of Array.isArray(commits) ? commits : []) {
