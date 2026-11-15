@@ -23,3 +23,15 @@ export function authorProblem(next, previous, accounts) {
   }
   return null;
 }
+
+/**
+ * Whether `commit` (as GitHub's API gives one) is one motionhub's GitHub App made: authored by the app (`app`, its
+ * <slug>[bot] account), committed by the app or by GitHub for it (web-flow: a commit made through GitHub's API has
+ * GitHub as its committer), and verified by GitHub. motionhub.dev's Worker judges
+ * the same commits with it (site/github-app.mjs), and ownership.yml through tools/check.mjs.
+ */
+export function appCommit(commit, app) {
+  const committer = commit?.committer?.login;
+  return Boolean(app) && commit?.author?.login === app && (committer === app || committer === 'web-flow')
+    && commit.commit?.verification?.verified === true && commit.commit.verification.reason === 'valid';
+}

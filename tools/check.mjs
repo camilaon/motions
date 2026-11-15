@@ -29,7 +29,8 @@
 import {readFileSync, readdirSync, statSync, lstatSync, existsSync} from 'node:fs';
 import {join, basename, dirname, resolve, relative, extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {authorProblem, singleAuthor} from './security/ownership.mjs';
+import {appCommit, authorProblem, singleAuthor} from './security/ownership.mjs';
+export {appCommit};
 import {sensitiveFile} from './security/package.mjs';
 
 /** The newest version of the format; every version before it is still read (SPEC.md §9). */
@@ -926,14 +927,13 @@ export function unsigned(commits) {
 /**
  * Who submitted a pull request that motionhub's GitHub App opened for them (site/github-app.mjs): the account its
  * commits name in a `Motionhub-Submitted-By: <id> <login>` line. Every commit that carries one names the same account,
- * and at least one does; else {error}. ownership.yml asks only for the app's own pull requests from this repository,
- * whose branches no one but the app and the maintainers can push to.
+ * and at least one does; else {error}. ownership.yml asks only for the app's own pull requests from a share/ branch
+ * of this repository, which no one but the app can write to.
  */
 export function submitter(commits, app) {
-  if (!Array.isArray(commits) || !commits.length || !app || commits.some((c) =>
-    c?.committer?.login !== app || c.commit?.verification?.verified !== true || c.commit.verification.reason !== 'valid'
+  if (!Array.isArray(commits) || !commits.length || !app || commits.some((c) => !appCommit(c, app)
     || !/^Motionhub-Submitted-By: \S+ \S+\s*$/m.test(c.commit?.message ?? ''))) {
-    return {error: 'every submission commit must be verified by GitHub, committed by the expected app, and name its submitter'};
+    return {error: 'every submission commit must be verified by GitHub, made by the expected app, and name its submitter'};
   }
   const named = [];
   for (const c of Array.isArray(commits) ? commits : []) {

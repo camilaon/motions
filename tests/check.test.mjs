@@ -607,7 +607,7 @@ test('main\'s checker on a pull request: its new accounts, links refused, motion
 
 test('a pull request motionhub opened for someone is theirs: every commit that names a submitter names the same one', async () => {
   const {submitter} = await import('../tools/check.mjs');
-  const c = (message) => ({committer: {login: 'motionhub[bot]'}, commit: {message, verification: {verified: true, reason: 'valid'}}});
+  const c = (message, committer = 'motionhub[bot]', author = 'motionhub[bot]', verification = {verified: true, reason: 'valid'}) => ({author: {login: author}, committer: {login: committer}, commit: {message, verification}});
   const trusted = (commits) => submitter(commits, 'motionhub[bot]');
   const by = 'Add X 1.0.0\n\nSigned-off-by: Ana <7+ana@users.noreply.github.com>\nMotionhub-Submitted-By: 7 ana\nMotionhub-Submission: abc\n';
   assert.deepEqual(trusted([c(by), c(by.replace('Add X 1.0.0', 'Update X 1.0.1'))]), {id: 7, login: 'ana'}, 'a maintainer\'s commit names no one and changes nothing');
@@ -616,4 +616,10 @@ test('a pull request motionhub opened for someone is theirs: every commit that n
   assert.ok(trusted([c(by.replace('7 ana', '7 ana\nAUTHOR=evil'))]).id === 7, 'a line ends where it ends');
   assert.ok(trusted([c(by.replace('7 ana', '0x7 ana'))]).error, 'an id is digits');
   assert.ok(trusted([c(by.replace('7 ana', '7 an$a'))]).error, 'a login is a GitHub login');
+  // GitHub commits for the app through its API (web-flow); the app is still the author, and GitHub signs it
+  assert.deepEqual(trusted([c(by, 'web-flow')]), {id: 7, login: 'ana'}, 'committed by GitHub for the app');
+  assert.ok(trusted([c(by, 'web-flow', 'eve')]).error, 'committed by GitHub for someone else');
+  assert.ok(trusted([c(by, 'eve')]).error, 'committed by someone else');
+  assert.ok(trusted([c(by, 'web-flow', 'motionhub[bot]', {verified: false, reason: 'unsigned'})]).error, 'not verified');
+  assert.ok(trusted([c(by, 'web-flow', 'motionhub[bot]', {verified: true, reason: 'unknown_key'})]).error, 'verified for another reason');
 });
